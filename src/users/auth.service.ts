@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { hash, compare } from 'bcrypt';
 
@@ -7,7 +7,7 @@ export class AuthService {
   constructor(private readonly usersService: UsersService) {}
 
   async signup(email: string, password: string) {
-    const users = await this.usersService.find(email);
+    const users = await this.usersService.find(email.toLowerCase());
 
     if (users.length) {
       throw new BadRequestException('Email already in use');
@@ -20,5 +20,18 @@ export class AuthService {
     return newUser;
   }
 
-  signin() {}
+  async signin(email: string, password: string) {
+    const [user] = await this.usersService.find(email.toLowerCase());
+    if (!user) {
+      throw new NotFoundException('Wrong Credentials!');
+    }
+
+    const match = await compare(password, user.password);
+
+    if (!match) {
+      throw new NotFoundException('Wrong Credentials!');
+    }
+
+    return user;
+  }
 }
